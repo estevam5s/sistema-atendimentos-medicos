@@ -4,7 +4,10 @@ import Features from "@/components/features";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Hero from "@/components/hero";
+import PricingSection from "@/components/pricing-section";
 import Testimonials from "@/components/testimonials";
+
+export const dynamic = "force-dynamic";
 
 const HomePage = () => {
   return (
@@ -20,6 +23,9 @@ const HomePage = () => {
 
       {/* Benefits Section */}
       <Benefits />
+
+      {/* Pricing Section */}
+      <PricingSection />
 
       {/* Testimonials */}
       <Testimonials />

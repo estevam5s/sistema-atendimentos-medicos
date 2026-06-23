@@ -18,5 +18,6 @@ export const config = {
     "/doctors/:path*",
     "/appointments/:path*",
     "/subscription/:path*",
+    "/admin/:path*",
   ],
 };

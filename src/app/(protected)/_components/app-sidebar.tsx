@@ -5,6 +5,7 @@ import {
   Gem,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   Stethoscope,
   UsersRound,
 } from "lucide-react";
@@ -56,10 +57,18 @@ const items = [
   },
 ];
 
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
 export function AppSidebar() {
   const router = useRouter();
   const session = authClient.useSession();
   const pathname = usePathname();
+  const isAdmin =
+    !!session.data?.user?.email &&
+    ADMIN_EMAILS.includes(session.data.user.email.toLowerCase());
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -119,10 +128,20 @@ export function AppSidebar() {
                 >
                   <Link href="/subscription">
                     <Gem />
-                    <span>Assinaturas</span>
+                    <span>Meu plano</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/admin")}>
+                    <Link href="/admin">
+                      <ShieldCheck />
+                      <span>Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

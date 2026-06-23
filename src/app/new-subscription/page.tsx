@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { PricingPlans } from "@/components/pricing-plans";
 import { getDaysRemainingInTrial } from "@/helpers/demo-trial";
 import { auth } from "@/lib/auth";
-
-import { SubscriptionPlan } from "../(protected)/subscription/_components/subscription-plan";
+import { getPlans, getUserPlan } from "@/lib/plans";
 
 export default async function Home() {
   const session = await auth.api.getSession({
@@ -13,6 +13,9 @@ export default async function Home() {
   if (!session) {
     redirect("/login");
   }
+  const plans = await getPlans();
+  const { plan, isAdmin } = await getUserPlan(session.user.id, session.user.email);
+  const currentSlug = isAdmin ? "enterprise" : plan?.slug || "free";
 
   const isDemoUser = session.user.isDemoUser;
   const daysRemaining = getDaysRemainingInTrial(
@@ -66,8 +69,8 @@ export default async function Home() {
         </div>
       </div>
 
-      <div className="w-full max-w-md">
-        <SubscriptionPlan userEmail={session.user.email} />
+      <div className="w-full max-w-6xl">
+        <PricingPlans plans={plans} currentSlug={currentSlug} isPaid={currentSlug !== "free"} />
       </div>
 
       <div className="mt-8 max-w-lg text-center">

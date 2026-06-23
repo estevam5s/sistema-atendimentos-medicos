@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -207,3 +208,65 @@ export const appointmentsTableRelations = relations(
     }),
   }),
 );
+
+// ===== Billing: catálogo de planos =====
+export const plansTable = pgTable("plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(), // free | starter | pro | enterprise
+  name: text("name").notNull(),
+  description: text("description"),
+  priceMonth: integer("price_month").notNull().default(0), // centavos BRL
+  priceYear: integer("price_year").notNull().default(0),
+  stripePriceMonth: text("stripe_price_month"),
+  stripePriceYear: text("stripe_price_year"),
+  features: jsonb("features").notNull().default([]),
+  limits: jsonb("limits").notNull().default({}),
+  highlighted: boolean("highlighted").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+// ===== Billing: assinatura por usuário (detalhes) =====
+export const subscriptionsTable = pgTable("subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" })
+    .unique(),
+  planSlug: text("plan_slug").notNull().default("free"),
+  status: text("status").notNull().default("active"), // active|trialing|past_due|canceled|incomplete
+  cycle: text("cycle").notNull().default("month"), // month|year
+  seats: integer("seats").notNull().default(1),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const subscriptionsTableRelations = relations(
+  subscriptionsTable,
+  ({ one }) => ({
+    user: one(usersTable, {
+      fields: [subscriptionsTable.userId],
+      references: [usersTable.id],
+    }),
+  }),
+);
+
+// ===== Admin: logs de auditoria =====
+export const adminLogsTable = pgTable("admin_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorEmail: text("actor_email"),
+  action: text("action"),
+  target: text("target"),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
