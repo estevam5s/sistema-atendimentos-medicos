@@ -1,4 +1,4 @@
-import { count, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -28,16 +28,24 @@ export async function GET(req: Request) {
   const mod = new URL(req.url).searchParams.get("module") || "overview";
 
   if (mod === "overview") {
-    const [[users], [clinics], [doctors], [patients], [appointments], subs, plans] =
-      await Promise.all([
-        db.select({ c: count() }).from(usersTable),
-        db.select({ c: count() }).from(clinicsTable),
-        db.select({ c: count() }).from(doctorsTable),
-        db.select({ c: count() }).from(patientsTable),
-        db.select({ c: count() }).from(appointmentsTable),
-        db.select().from(subscriptionsTable),
-        db.select().from(plansTable),
-      ]);
+    // 1 query para todas as contagens (evita rajada de conexões no pooler) + leituras sequenciais
+    const countsRes = await db.execute(sql`
+      select
+        (select count(*) from ${usersTable}) as users,
+        (select count(*) from ${clinicsTable}) as clinics,
+        (select count(*) from ${doctorsTable}) as doctors,
+        (select count(*) from ${patientsTable}) as patients,
+        (select count(*) from ${appointmentsTable}) as appointments
+    `);
+    const c = (countsRes.rows?.[0] ?? {}) as Record<string, number | string>;
+    const num = (v: number | string | undefined) => Number(v ?? 0);
+    const users = { c: num(c.users) };
+    const clinics = { c: num(c.clinics) };
+    const doctors = { c: num(c.doctors) };
+    const patients = { c: num(c.patients) };
+    const appointments = { c: num(c.appointments) };
+    const subs = await db.select().from(subscriptionsTable);
+    const plans = await db.select().from(plansTable);
 
     const priceMap = Object.fromEntries(plans.map((p) => [p.slug, p]));
     const byPlan: Record<string, number> = {};
